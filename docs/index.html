@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EvolveForm — Forms that evolve themselves</title>
+<meta name="description" content="An open-source framework where a 3-agent Claude pipeline continuously analyzes form responses, proposes surgical changes to the form itself, and builds an institutional memory." />
+<meta property="og:title" content="EvolveForm — Forms that evolve themselves" />
+<meta property="og:description" content="A self-evolving form framework powered by a 3-agent Claude pipeline. Open source, MIT licensed." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --cream:#f9f3ea;
+    --cream-2:#fdf6e9;
+    --paper:#ffffff;
+    --ink:#181a1f;
+    --ink-soft:#3a3d45;
+    --muted:#6c6a63;
+    --faint:#736c5c;
+    --pink:#cf0a5e;
+    --pink-bright:#ff3d8b;
+    --pink-soft:#ffe2ee;
+    --amber:#a86606;
+    --amber-soft:#fdeecb;
+    --mint:#0a8a5f;
+    --mint-soft:#d6f6e8;
+    --lav:#6a57f0;
+    --lav-soft:#e9e6ff;
+    --sky:#1576d6;
+    --sky-soft:#dcefff;
+    --line:rgba(24,26,31,.09);
+    --line-2:rgba(24,26,31,.14);
+    --r:20px;--maxw:1140px;
+    --shadow:0 1px 0 rgba(24,26,31,.04),0 14px 34px -18px rgba(24,26,31,.22);
+    --shadow-lg:0 2px 0 rgba(24,26,31,.05),0 26px 60px -24px rgba(24,26,31,.3);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--cream);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .mono{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .pink-text{color:var(--pink-bright)}
+  svg.ico{width:20px;height:20px;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
+
+  .bg-soft{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+    radial-gradient(680px 380px at 78% -6%,rgba(255,61,139,.10),transparent 60%),
+    radial-gradient(620px 360px at 12% 4%,rgba(245,158,11,.10),transparent 60%)}
+
+  /* nav */
+  header.nav{position:sticky;top:0;z-index:60;backdrop-filter:blur(12px);background:rgba(251,240,223,.78);border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px;gap:24px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:18px;letter-spacing:-.03em}
+  .brand .mark{width:34px;height:34px;border-radius:11px;background:var(--ink);display:grid;place-items:center;box-shadow:0 4px 0 rgba(24,26,31,.12);transform:rotate(-4deg)}
+  .brand .mark svg{width:18px;height:18px;stroke:var(--cream);stroke-width:2.6;fill:none}
+  nav.links{display:flex;align-items:center;gap:30px}
+  nav.links a{color:var(--ink-soft);font-size:15px;font-weight:600;transition:color .15s}
+  nav.links a:hover{color:var(--pink)}
+  .nav-right{display:flex;align-items:center;gap:12px}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px;padding:11px 18px;border-radius:12px;border:1.5px solid var(--ink);transition:transform .12s,box-shadow .15s,background .15s,color .15s;cursor:pointer;white-space:nowrap}
+  .btn svg{width:16px;height:16px}
+  .btn-primary{background:var(--ink);color:var(--cream);box-shadow:0 4px 0 rgba(24,26,31,.18)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 0 rgba(24,26,31,.18)}
+  .btn-pink{background:var(--pink);color:#fff;border-color:var(--pink);box-shadow:0 4px 0 rgba(255,61,139,.32)}
+  .btn-pink:hover{transform:translateY(-2px);box-shadow:0 6px 0 rgba(255,61,139,.32)}
+  .btn-ghost{background:var(--paper);color:var(--ink);box-shadow:0 4px 0 rgba(24,26,31,.08)}
+  .btn-ghost:hover{transform:translateY(-2px);box-shadow:0 6px 0 rgba(24,26,31,.08)}
+  .gh-star{display:inline-flex;align-items:center;border:1.5px solid var(--ink);border-radius:12px;overflow:hidden;font-size:14px;font-weight:700;background:var(--paper);box-shadow:0 4px 0 rgba(24,26,31,.08)}
+  .gh-star a{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;color:var(--ink)}
+  .gh-star a:hover{color:var(--pink)}
+  .gh-star .count{padding:9px 12px;border-left:1.5px solid var(--ink);color:var(--muted);display:inline-flex;align-items:center;gap:5px}
+  .gh-star .count svg{width:13px;height:13px;fill:var(--amber);stroke:none}
+  .nav-toggle{display:none}
+
+  /* hero */
+  .hero{padding:88px 0 60px;text-align:center}
+  .badge{display:inline-flex;align-items:center;gap:9px;padding:6px 8px 6px 8px;border:1.5px solid var(--ink);border-radius:999px;background:var(--paper);font-size:13.5px;color:var(--ink-soft);font-weight:600;margin-bottom:30px;box-shadow:0 3px 0 rgba(24,26,31,.07)}
+  .badge .tagpill{font-size:11.5px;font-weight:800;letter-spacing:.02em;color:#fff;background:var(--pink);padding:3px 10px;border-radius:999px}
+  h1{font-size:clamp(44px,7.4vw,88px);line-height:.98;letter-spacing:-.045em;font-weight:800}
+  .hero p.sub{max-width:620px;margin:26px auto 0;font-size:clamp(17px,2.2vw,21px);color:var(--muted);font-weight:500}
+  .install{display:inline-flex;align-items:center;gap:14px;margin-top:36px;padding:11px 12px 11px 20px;background:var(--paper);border:1.5px solid var(--ink);border-radius:14px;font-size:15px;box-shadow:0 5px 0 rgba(24,26,31,.1)}
+  .install .dollar{color:var(--pink);font-weight:700}
+  .install code{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:500}
+  .install button{background:var(--cream);border:1.5px solid var(--ink);border-radius:9px;color:var(--ink);width:34px;height:34px;display:grid;place-items:center;cursor:pointer;transition:background .15s}
+  .install button:hover{background:var(--pink-soft)}
+  .hero .cta{display:flex;gap:14px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+  .hero .cta .btn{padding:13px 24px;font-size:15.5px}
+
+  /* terminal */
+  .term-shell{max-width:740px;margin:60px auto 0;border-radius:18px;border:1.5px solid var(--ink);background:#15171c;box-shadow:0 10px 0 rgba(24,26,31,.12),0 40px 80px -30px rgba(24,26,31,.5);overflow:hidden;text-align:left}
+  .term-bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .term-bar .dot{width:12px;height:12px;border-radius:50%}
+  .term-bar .r{background:#ff5f57}.term-bar .y{background:#febc2e}.term-bar .g{background:#28c840}
+  .term-bar .title{margin-left:10px;font-size:12.5px;color:#8b9098;font-family:'JetBrains Mono',monospace}
+  .term-body{padding:22px 24px;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.9;color:#d5dae3;overflow-x:auto}
+  .term-body .pr{color:#34e1d4}.term-body .ok{color:#4ade80}.term-body .dim{color:#7d828c}
+  .term-body .ev{color:#fbbf24}.term-body .ag{color:#ff7eb3}.term-body .hl{color:#fff;font-weight:600}
+  .term-body .cur{display:inline-block;width:9px;height:15px;background:#34e1d4;vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .logos{margin-top:60px;text-align:center}
+  .logos .label{font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .logos .row{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:18px}
+  .logos .row span{background:var(--paper);border:1.5px solid var(--line-2);border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;color:var(--ink-soft);box-shadow:0 3px 0 rgba(24,26,31,.05)}
+
+  /* sections */
+  section.block{padding:96px 0;border-top:1.5px solid var(--line)}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;letter-spacing:.02em;color:var(--pink);margin-bottom:16px;text-transform:uppercase}
+  h2{font-size:clamp(32px,4.6vw,52px);letter-spacing:-.04em;font-weight:800;line-height:1.04}
+  .section-head{max-width:640px;margin-bottom:52px}
+  .section-head.center{margin-inline:auto;text-align:center}
+  .section-head.center .eyebrow{justify-content:center}
+  .section-head p{color:var(--muted);font-size:18.5px;margin-top:16px;font-weight:500}
+
+  .grid{display:grid;gap:18px}
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+
+  .card{background:var(--paper);border:1.5px solid var(--line-2);border-radius:var(--r);padding:26px;box-shadow:var(--shadow);transition:transform .16s,box-shadow .16s}
+  .card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+  .ic-box{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;margin-bottom:18px;border:1.5px solid var(--ink)}
+  .ic-box svg{width:22px;height:22px;stroke-width:2}
+  .ic-pink{background:var(--pink-soft);color:var(--pink)}
+  .ic-amber{background:var(--amber-soft);color:var(--amber)}
+  .ic-mint{background:var(--mint-soft);color:var(--mint)}
+  .ic-lav{background:var(--lav-soft);color:var(--lav)}
+  .ic-sky{background:var(--sky-soft);color:var(--sky)}
+  .card h3{font-size:18px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
+  .card p{color:var(--muted);font-size:15px;font-weight:500}
+
+  /* pipeline */
+  .pipeline{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:0}
+  .agent{padding:30px 26px;text-align:left}
+  .agent .ag-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .agent .num{font-size:13px;font-weight:800;color:var(--faint);letter-spacing:.1em}
+  .agent .ic-box{margin:0;width:42px;height:42px}
+  .agent h3{font-size:23px;font-weight:800;margin:0 0 4px;letter-spacing:-.025em}
+  .agent .role{font-size:14px;color:var(--pink);font-weight:700;margin-bottom:13px}
+  .agent p{font-size:14.5px;color:var(--muted);margin-bottom:16px;font-weight:500}
+  .agent .tool{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);background:var(--cream);border:1.5px solid var(--line-2);border-radius:9px;padding:7px 11px;display:inline-block;font-weight:500}
+  .agent .tool b{color:var(--pink)}
+  .conn{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--pink);padding:0 14px}
+  .conn svg{width:30px;height:30px;stroke-width:2}
+  .conn small{font-size:11px;color:var(--faint);margin-top:4px;font-family:'JetBrains Mono',monospace;font-weight:600}
+  .pipe-foot{text-align:center;color:var(--muted);font-size:15px;margin-top:30px;font-weight:500}
+  .pipe-foot code{font-family:'JetBrains Mono',monospace;color:var(--pink);background:var(--pink-soft);padding:2px 8px;border-radius:7px;font-weight:600}
+
+  /* architecture */
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .layer{border:1.5px solid var(--line-2);border-radius:16px;padding:20px 24px;background:var(--paper);display:flex;align-items:center;gap:22px;box-shadow:0 1px 0 rgba(24,26,31,.04);transition:transform .14s,box-shadow .14s}
+  .layer:hover{transform:translateX(4px);box-shadow:var(--shadow)}
+  .layer .tag{font-size:12.5px;font-weight:800;letter-spacing:.01em;color:#fff;background:var(--ink);padding:7px 13px;border-radius:10px;white-space:nowrap;min-width:130px;text-align:center}
+  .layer:nth-child(4) .tag{background:var(--pink)}
+  .layer .body{color:var(--muted);font-size:15px;font-weight:500}
+  .layer .body b{color:var(--ink);font-weight:700}
+  .layer .tech{margin-left:auto;font-size:12.5px;color:var(--faint);font-family:'JetBrains Mono',monospace;white-space:nowrap;font-weight:500}
+  .arch-foot{text-align:center;color:var(--faint);font-size:14.5px;margin-top:24px;font-weight:500}
+  .arch-foot code{color:var(--pink);font-weight:600}
+
+  /* bento */
+  .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:18px}
+  .bento .card{grid-column:span 2}
+  .bento .card.wide{grid-column:span 3}
+
+  /* quickstart */
+  .qs{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center}
+  .codewin{border-radius:18px;border:1.5px solid var(--ink);background:#15171c;overflow:hidden;box-shadow:0 10px 0 rgba(24,26,31,.12),0 30px 60px -28px rgba(24,26,31,.45)}
+  .codewin .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .codewin .bar .dot{width:11px;height:11px;border-radius:50%}
+  .codewin .bar .r{background:#ff5f57}.codewin .bar .y{background:#febc2e}.codewin .bar .g{background:#28c840}
+  .codewin .bar .fn{margin-left:8px;font-size:12px;color:#8b9098;font-family:'JetBrains Mono',monospace}
+  .codewin pre{padding:22px;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.9;overflow-x:auto;color:#d5dae3}
+  .codewin .c{color:#7d828c}.codewin .k{color:#ff7eb3}.codewin .s{color:#86efac}
+  .qs ul{list-style:none;display:flex;flex-direction:column;gap:18px}
+  .qs li{display:flex;gap:14px;align-items:flex-start;font-size:16px;color:var(--muted);font-weight:500}
+  .qs li .chk{flex:none;width:26px;height:26px;border-radius:9px;background:var(--mint-soft);border:1.5px solid var(--mint);display:grid;place-items:center;color:var(--mint);margin-top:1px}
+  .qs li .chk svg{width:14px;height:14px;stroke-width:2.6}
+  .qs li b{color:var(--ink);font-weight:700}
+
+  /* cta */
+  .cta-band{position:relative;text-align:center;border:1.5px solid var(--ink);border-radius:28px;padding:74px 32px;margin-top:96px;overflow:hidden;background:var(--paper);box-shadow:0 8px 0 rgba(24,26,31,.1)}
+  .cta-band::before{content:"";position:absolute;inset:0;z-index:0;background:radial-gradient(560px 280px at 50% -10%,rgba(255,61,139,.16),transparent 70%),radial-gradient(420px 220px at 84% 120%,rgba(245,158,11,.16),transparent 70%)}
+  .cta-band>*{position:relative;z-index:1}
+  .cta-band h2{margin-bottom:16px}
+  .cta-band p{color:var(--muted);max-width:520px;margin:0 auto 32px;font-size:18.5px;font-weight:500}
+  .cta-band .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  /* footer */
+  footer{border-top:1.5px solid var(--line);padding:60px 0 40px;margin-top:96px}
+  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px}
+  .foot-grid .about{max-width:300px}
+  .foot-grid .about p{color:var(--muted);font-size:14.5px;margin-top:14px;font-weight:500}
+  .foot-col h4{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);margin-bottom:16px;font-weight:800}
+  .foot-col a{display:block;color:var(--ink-soft);font-size:15px;margin-bottom:11px;font-weight:600;transition:color .15s}
+  .foot-col a:hover{color:var(--pink)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:48px;padding-top:28px;border-top:1.5px solid var(--line);color:var(--faint);font-size:14px;flex-wrap:wrap;gap:14px;font-weight:600}
+
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  @media(max-width:980px){.bento{grid-template-columns:repeat(2,1fr)}.bento .card,.bento .card.wide{grid-column:span 1}.qs{grid-template-columns:1fr;gap:32px}}
+  @media(max-width:820px){
+    nav.links,.nav-right .gh-star,.nav-right .btn-primary{display:none}
+    .nav-toggle{display:grid;place-items:center;padding:9px}
+    nav.links.open{display:flex;position:absolute;top:68px;left:0;right:0;flex-direction:column;align-items:flex-start;background:var(--cream-2);border-bottom:1.5px solid var(--line);padding:20px 24px;gap:18px}
+    .cols-4{grid-template-columns:1fr 1fr}
+    .pipeline{grid-template-columns:1fr}.conn{transform:rotate(90deg);padding:14px 0}
+    .layer{flex-direction:column;align-items:flex-start;gap:10px}.layer .tech{margin-left:0}
+    .foot-grid{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:520px){.cols-4{grid-template-columns:1fr}.bento{grid-template-columns:1fr}.foot-grid{grid-template-columns:1fr}.install{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="bg-soft"></div>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top"><span class="mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span>EvolveForm</a>
+    <nav class="links" id="navlinks">
+      <a href="#problem">Why</a><a href="#pipeline">Pipeline</a><a href="#architecture">Architecture</a><a href="#features">Features</a><a href="#quickstart">Quickstart</a>
+    </nav>
+    <div class="nav-right">
+      <span class="gh-star">
+        <a href="https://github.com/pranay-janjarla/Evolvee" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>Star</a>
+        <span class="count"><svg viewBox="0 0 24 24"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3"/></svg>1.2k</span>
+      </span>
+      <a class="btn btn-primary" href="#quickstart">Get started</a>
+      <button class="btn btn-ghost nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <span class="badge"><span class="tagpill">v0.1</span> Now open source under MIT</span>
+      <h1>Forms that<br><span class="pink-text">evolve themselves.</span></h1>
+      <p class="sub">A background AI pipeline watches every response, detects what you'd never spot by hand, and rewrites the form itself — building institutional memory as it goes.</p>
+
+      <div class="install">
+        <span class="dollar mono">$</span>
+        <code>git clone github.com/pranay-janjarla/Evolvee</code>
+        <button onclick="copyText('git clone https://github.com/pranay-janjarla/Evolvee.git',this)" aria-label="Copy"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      </div>
+
+      <div class="cta">
+        <a class="btn btn-pink" href="https://github.com/pranay-janjarla/Evolvee" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>Star on GitHub</a>
+        <a class="btn btn-ghost" href="#pipeline">See how it works <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+
+      <div class="term-shell reveal">
+        <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">evolveform — analysis loop</span></div>
+        <div class="term-body">
+<span class="pr">$</span> python server.py
+<span class="ok">✓</span> EvolveForm running on <span class="hl">http://localhost:5000</span>
+<span class="ok">✓</span> APScheduler started <span class="dim">· interval=daily · event-threshold=10</span>
+
+<span class="dim">[14:22:01]</span> <span class="ev">event trigger</span> <span class="dim">→</span> 12 unanalyzed submissions
+  <span class="ag">›</span> Analyst    <span class="dim">3 findings</span> · 1 high, 2 low
+  <span class="ag">›</span> Evolution  <span class="dim">propose</span> remove <span class="hl">"scent_rating"</span> <span class="dim">· skip_rate 0.61</span>
+  <span class="ag">›</span> Scribe     <span class="dim">baseline</span> satisfaction_avg=<span class="hl">3.8</span> <span class="dim">(n=150)</span>
+  <span class="ok">confidence 0.88 ≥ 0.85</span> <span class="dim">→</span> auto-applied <span class="hl">· form v4</span> <span class="cur"></span>
+        </div>
+      </div>
+
+      <div class="logos">
+        <div class="label">Built on a boring, bulletproof stack</div>
+        <div class="row"><span>Python</span><span>Flask</span><span>SQLite</span><span>APScheduler</span><span>Claude Sonnet 4.6</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="block" id="problem">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">The problem</div>
+        <h2>Most forms are frozen the day they ship.</h2>
+        <p>A team writes the questions, deploys, and reviews results by hand weeks later. That gap quietly hides four expensive failures.</p>
+      </div>
+      <div class="grid cols-4">
+        <div class="card reveal"><div class="ic-box ic-lav"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></div><h3>Survey fatigue</h3><p>When 95% pick the same answer, the question carries zero signal — but it stays, because nobody noticed.</p></div>
+        <div class="card reveal"><div class="ic-box ic-sky"><svg class="ico" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/></svg></div><h3>Silent skips</h3><p>Shown 200 times, answered 80 — a 60% skip rate. You see the answers, never the signals of confusion.</p></div>
+        <div class="card reveal"><div class="ic-box ic-amber"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Delayed signal</h3><p>A safety spike takes days to surface because someone has to download and review the data by hand.</p></div>
+        <div class="card reveal"><div class="ic-box ic-pink"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3>Domain lock-in</h3><p>Most tools hardwire detection logic for one domain and can't carry it to a new context.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section class="block" id="pipeline">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <div class="eyebrow">How it works</div>
+        <h2>Three agents. One job each.</h2>
+        <p>Not one overloaded prompt — a sequential pipeline where each agent hands off structured JSON, so none can hallucinate about what the last one found.</p>
+      </div>
+      <div class="pipeline">
+        <div class="card agent reveal">
+          <div class="ag-top"><div class="num">01</div><div class="ic-box ic-pink"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div></div>
+          <h3>Analyst</h3><div class="role">"What patterns exist?"</div>
+          <p>Reads submissions and telemetry, flags anomalies and low-variance questions, classifies severity.</p>
+          <span class="tool">tool · <b>analyze_patterns</b></span>
+        </div>
+        <div class="conn"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><small>findings</small></div>
+        <div class="card agent reveal">
+          <div class="ag-top"><div class="num">02</div><div class="ic-box ic-amber"><svg class="ico" viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="m4 4 5 5"/></svg></div></div>
+          <h3>Evolution</h3><div class="role">"Should the form change?"</div>
+          <p>Proposes adds, edits, and removals — self-censored against your policy guardrails before you see them.</p>
+          <span class="tool">tool · <b>propose_form_changes</b></span>
+        </div>
+        <div class="conn"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><small>changes</small></div>
+        <div class="card agent reveal">
+          <div class="ag-top"><div class="num">03</div><div class="ic-box ic-mint"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div></div>
+          <h3>Scribe</h3><div class="role">"Write it to memory."</div>
+          <p>Records findings and patches the workspace baselines, so the next run reasons against learned thresholds.</p>
+          <span class="tool">tool · <b>update_knowledge</b></span>
+        </div>
+      </div>
+      <p class="pipe-foot">One prompt-cached context shared across all three · forced <code>tool_choice</code> guarantees valid JSON every run.</p>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="block" id="architecture">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Architecture</div>
+        <h2>Thin at the top, rich at the bottom.</h2>
+        <p>Five layers, each with one bounded responsibility. Submissions flow down; findings, alerts, and learned context flow back up.</p>
+      </div>
+      <div class="stack">
+        <div class="layer reveal"><span class="tag">Presentation</span><span class="body">Login · onboarding · admin panel (builder, dashboard, pending, analytics) · <b>public form</b> at <b>/form/&lt;token&gt;</b></span><span class="tech">Flask · Jinja2 · Alpine</span></div>
+        <div class="layer reveal"><span class="tag">Scheduling</span><span class="body">Hybrid triggers — <b>time-based</b> interval, <b>event</b> threshold, and a <b>30-min urgency recheck</b> after any CRITICAL finding</span><span class="tech">APScheduler</span></div>
+        <div class="layer reveal"><span class="tag">Orchestration</span><span class="body">Deterministic confidence scoring — <b>auto-apply ≥ 0.85</b>, queue 0.5–0.85, discard &lt; 0.5. No LLM in the loop.</span><span class="tech">orchestrator.py</span></div>
+        <div class="layer reveal"><span class="tag">Intelligence</span><span class="body">The <b>3-agent pipeline</b> — Analyst → Evolution → Scribe, with shared prompt caching</span><span class="tech">Claude Sonnet 4.6</span></div>
+        <div class="layer reveal"><span class="tag">Persistence</span><span class="body">Append-friendly tables — form_versions, submissions, question_telemetry, pending_changes, knowledge_entries</span><span class="tech">SQLite</span></div>
+      </div>
+      <p class="arch-foot">Zero infrastructure to start — <code>git clone</code> then <code>python server.py</code>. No database to provision.</p>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">What makes it different</div>
+        <h2>Built to learn, not just collect.</h2>
+      </div>
+      <div class="bento">
+        <div class="card wide reveal"><div class="ic-box ic-pink"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div><h3>Deterministic confidence scoring</h3><p>Auditable scores — not the model's mood — decide what auto-applies, what waits for review, and what gets discarded. Noisy data never mutates your form, and the same input always yields the same decision.</p></div>
+        <div class="card reveal"><div class="ic-box ic-sky"><svg class="ico" viewBox="0 0 24 24"><path d="M6 20v-4M12 20v-9M18 20V8"/></svg></div><h3>Question telemetry</h3><p>Tracks engagement, not just answers — skip rates and distributions reveal confusion and saturation.</p></div>
+        <div class="card reveal"><div class="ic-box ic-lav"><svg class="ico" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div><h3>Living workspace context</h3><p>A per-workspace memory that accumulates baselines and findings over the life of the deployment.</p></div>
+        <div class="card reveal"><div class="ic-box ic-amber"><svg class="ico" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></div><h3>Hybrid triggers</h3><p>Responds to activity, not the clock — scheduled runs, surge-based event triggers, and safety rechecks coexist.</p></div>
+        <div class="card wide reveal"><div class="ic-box ic-mint"><svg class="ico" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Policy guardrails &amp; human-in-the-loop</h3><p>GDPR, HIPAA, anonymity, and question-count limits live in the agents' context — proposals self-censor before they reach you. Autonomous by default, review by exception: high-confidence changes apply instantly, uncertain ones queue for one click of approval.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICKSTART -->
+  <section class="block" id="quickstart">
+    <div class="wrap">
+      <div class="section-head reveal"><div class="eyebrow">Quickstart</div><h2>Running in under a minute.</h2></div>
+      <div class="qs">
+        <div class="codewin reveal">
+          <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fn">bash</span></div>
+<pre><span class="c"># clone the framework</span>
+<span class="k">git</span> clone https://github.com/pranay-janjarla/Evolvee.git
+<span class="k">cd</span> Evolvee
+
+<span class="c"># install dependencies</span>
+<span class="k">pip</span> install -r requirements.txt
+
+<span class="c"># add your Anthropic API key</span>
+<span class="k">echo</span> <span class="s">"CLAUDE_API_KEY=sk-ant-..."</span> > .env
+
+<span class="c"># launch the server + evolution loop</span>
+<span class="k">python</span> server.py</pre>
+        </div>
+        <ul class="reveal">
+          <li><span class="chk"><svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>No database setup.</b> SQLite ships in the box — clone and run.</span></li>
+          <li><span class="chk"><svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Forced structured output.</b> Every Claude call returns valid JSON via tool use.</span></li>
+          <li><span class="chk"><svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Prompt caching built in.</b> The shared context is paid once, then reused ~10× cheaper.</span></li>
+          <li><span class="chk"><svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Fully reversible.</b> Form versions are append-only — roll back to any prior state.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="wrap">
+    <div class="cta-band reveal">
+      <h2>Fork it. Deploy it. <span class="pink-text">Evolve it.</span></h2>
+      <p>EvolveForm is open source under the MIT license. Read the full system design, study the agent schemas, or open a PR.</p>
+      <div class="cta">
+        <a class="btn btn-pink" href="https://github.com/pranay-janjarla/Evolvee" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>View on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/pranay-janjarla/Evolvee/blob/main/README.md" target="_blank" rel="noopener">Read the design doc</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="about">
+        <a class="brand" href="#top"><span class="mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span>EvolveForm</a>
+        <p>A self-evolving form framework powered by a 3-agent Claude pipeline. Open source, MIT licensed.</p>
+      </div>
+      <div class="foot-col"><h4>Product</h4><a href="#pipeline">Pipeline</a><a href="#architecture">Architecture</a><a href="#features">Features</a><a href="#quickstart">Quickstart</a></div>
+      <div class="foot-col"><h4>Resources</h4><a href="https://github.com/pranay-janjarla/Evolvee/blob/main/README.md" target="_blank" rel="noopener">Design doc</a><a href="https://github.com/pranay-janjarla/Evolvee" target="_blank" rel="noopener">Source code</a><a href="https://github.com/pranay-janjarla/Evolvee/issues" target="_blank" rel="noopener">Issues</a></div>
+      <div class="foot-col"><h4>Community</h4><a href="https://github.com/pranay-janjarla/Evolvee" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/pranay-janjarla/Evolvee/fork" target="_blank" rel="noopener">Fork the repo</a><a href="https://github.com/pranay-janjarla/Evolvee/blob/main/LICENSE" target="_blank" rel="noopener">License</a></div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 EvolveForm · MIT License</span><span>Built with Flask &amp; Claude</span></div>
+  </div>
+</footer>
+
+<script>
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  document.querySelectorAll('#navlinks a').forEach(a=>a.addEventListener('click',()=>document.getElementById('navlinks').classList.remove('open')));
+  function copyText(t,btn){navigator.clipboard.writeText(t).then(()=>{const o=btn.innerHTML;btn.innerHTML='<svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';setTimeout(()=>btn.innerHTML=o,1500);});}
+</script>
+</body>
+</html>
