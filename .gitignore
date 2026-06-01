@@ -1,0 +1,21 @@
+# Local secrets — never commit
+.env
+.env.*
+
+# Internal/large standalone artifact (kept out of the public repo)
+architecture.html
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local data stores
+memory.json
+alerts.log
+*.sqlite
+*.db
+
+# OS / editor
+.DS_Store
