@@ -3,6 +3,8 @@
 > A self-evolving form framework powered by a 3-agent Claude pipeline.  
 > This document covers architecture rationale, data flows, agent mechanics, and design decisions in depth.
 
+**🌐 Website: [pranay-janjarla.github.io/Evolvee](https://pranay-janjarla.github.io/Evolvee/)** · License: MIT
+
 ---
 
 ## Table of Contents
