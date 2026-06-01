@@ -94,6 +94,51 @@ EvolveForm is organized into five layers. Each layer has a single, clearly bound
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 2.1 System Architecture — Node View
+
+The same five layers, expanded to show the key components in each and the data that flows between them. Submissions flow **downward**; findings, alerts, and context patches flow **upward**.
+
+```
+┌────────── PRESENTATION  —  Flask · Jinja2 · Alpine.js · SortableJS ──────────┐
+│ Login → Onboarding                                                           │
+│ Admin Panel:  Dashboard · Form Builder · Pending Changes · Analytics         │
+│ Public Form:  /form/<token>   (respondents, no auth)                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                        │  form load / submission  ▲ alerts surfaced to admin
+                                        ▼
+┌────────────────── SCHEDULING  —  APScheduler (in-process) ───────────────────┐
+│ APScheduler (configurable interval)  ·  Event Trigger (count ≥ thresh)       │
+│ Urgency Recheck  (fires 30 min after any CRITICAL finding)                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                        │  pipeline fire signal
+                                        ▼
+┌───────── ORCHESTRATION  —  orchestrator.py (deterministic, no LLM) ──────────┐
+│ Fetch data → run pipeline → score confidence → route change:                 │
+│ ≥ 0.85 auto-apply   ·   0.5–0.85 queue   ·   < 0.5 discard                   │
+│ marks submissions analyzed = 1   ·   logs analysis_run                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                        │  structured I/O — JSON via tool_use
+                                        ▼
+┌─────────── INTELLIGENCE  —  3-Agent Pipeline (Claude Sonnet 4.6) ────────────┐
+│ Analyst Agent ──findings──▶ Evolution Agent ──changes──▶ Scribe Agent        │
+│ 'what patterns?'           'should the form change?'    'write memory'       │
+│ forced tool_use  ·  shared cached system prompt (workspace_context) × 3      │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                        │  reads submissions + telemetry   ▲ writes findings / context patch
+                                        ▼
+┌────────────────── PERSISTENCE  —  SQLite (sqlite3, no ORM) ──────────────────┐
+│ workspaces · workspace_context · form_versions · submissions                 │
+│ question_telemetry · pending_changes · knowledge_entries                     │
+│ analysis_runs · loop_runs                                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Data flows**
+- **Submission → Event Trigger**: each POST checks the unanalyzed count; crossing the threshold fires the pipeline without waiting for the schedule.
+- **Scheduled / Urgency trigger → Orchestrator**: APScheduler (or a 30-min CRITICAL recheck) kicks off a run when unanalyzed submissions exist.
+- **Analyst → Evolution → Scribe**: structured JSON hand-off between agents — data, not prose.
+- **Scribe → workspace_context patch**: derived baselines flow back into the cached system prompt, making the next run sharper.
+
 The architecture is intentionally **thin at the top, rich at the bottom**. The Presentation and Scheduling layers do minimal work. The Orchestration layer does deterministic math (no LLM). The Intelligence layer is where all probabilistic reasoning happens. The Persistence layer is the source of truth that outlives any single run.
 
 ---
